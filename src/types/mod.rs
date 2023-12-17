@@ -28,3 +28,23 @@ pub enum SymbiosisTradeType {
     /// Izumi
     Izumi,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::SymbiosisTradeType;
+
+    #[test]
+    fn token_types_as_str() {
+        let items = &[
+            (SymbiosisTradeType::Dex, "\"dex\""),
+            (SymbiosisTradeType::OneInch, "\"1inch\""),
+            (SymbiosisTradeType::OpenOcean, "\"open-ocean\""),
+            (SymbiosisTradeType::Wrap, "\"wrap\""),
+            (SymbiosisTradeType::Izumi, "\"izumi\""),
+        ];
+
+        for (i, s) in items {
+            assert_eq!(serde_json::to_string(i).unwrap(), *s);
+        }
+    }
+}

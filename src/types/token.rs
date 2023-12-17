@@ -135,3 +135,17 @@ pub enum TokenTypes {
     /// TRC20 token.
     Tron,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::TokenTypes;
+
+    #[test]
+    fn token_types_as_str() {
+        let items = &[(TokenTypes::Evm, "\"evm\""), (TokenTypes::Tron, "\"tron\"")];
+
+        for (i, s) in items {
+            assert_eq!(serde_json::to_string(i).unwrap(), *s);
+        }
+    }
+}

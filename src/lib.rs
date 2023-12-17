@@ -65,7 +65,7 @@
 
 #![deny(missing_docs)]
 #![warn(missing_debug_implementations, rust_2018_idioms, rustdoc::all)]
-#![allow(rustdoc::missing_doc_code_examples, rustdoc::private_doc_tests)]
+#![allow(rustdoc::private_doc_tests)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![allow(unused)]
 

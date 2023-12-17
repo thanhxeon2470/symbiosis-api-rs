@@ -89,3 +89,6 @@ impl BridgeResponse {
         self.approve_to
     }
 }
+
+#[cfg(test)]
+mod tests {}
