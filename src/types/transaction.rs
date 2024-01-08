@@ -1,16 +1,14 @@
-use super::{serde_utils::*, token::TokenAmount};
-use chrono::{DateTime, Utc};
-use derive_builder::Builder;
-use ethers_core::types::{Address, Bytes, Chain, TransactionRequest, TxHash, U256};
+use super::serde_utils::*;
+use crate::types::TryFromInto;
+use ethers_core::types::{Address, Bytes, Chain, TransactionRequest, U256};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, TryFromInto};
+use serde_with::serde_as;
+use smart_default::SmartDefault;
 
-/// Transaction to sent to the network, return from the `Symbiosis` API.  
-#[allow(missing_docs)]
 #[serde_as]
-#[derive(Clone, Default, Builder, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Tx {
+pub struct Transaction {
     to: Address,
     #[serde(
         serialize_with = "serialize_u256_as_dec_string",
@@ -22,8 +20,8 @@ pub struct Tx {
     chain_id: Chain,
 }
 
-impl From<Tx> for TransactionRequest {
-    fn from(value: Tx) -> Self {
+impl From<Transaction> for TransactionRequest {
+    fn from(value: Transaction) -> Self {
         TransactionRequest::new()
             .to(value.to)
             .value(value.value)
@@ -32,38 +30,48 @@ impl From<Tx> for TransactionRequest {
     }
 }
 
-impl Tx {
-    /// Get the `to` address in this transaction.
+#[derive(SmartDefault, Debug, Serialize)]
+pub struct TransactionBuilder {
+    to: Address,
+    value: U256,
+    #[default(Bytes::default())]
+    data: Bytes,
+    chain_id: Chain,
+}
+
+impl Transaction {
+    pub fn builder() -> TransactionBuilder {
+        TransactionBuilder::default()
+    }
     pub fn to(&self) -> Address {
         self.to
     }
-
-    /// Get the `value` to be sent in this transaction.
     pub fn value(&self) -> U256 {
         self.value
     }
-
-    /// Get the `data` to be called in this transaction.
     pub fn data(&self) -> Bytes {
         self.data.clone()
     }
-
-    /// Get the `chain_id` to be sent in this transaction.
     pub fn chain_id(&self) -> Chain {
         self.chain_id
     }
 }
 
-/// `Symbiosis` origin transaction, means that the transaction sent to the origin blockchain.
-#[serde_as]
-#[derive(Clone, Default, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TxOrigin {
-    hash: TxHash,
-    #[serde_as(as = "TryFromInto<u64>")]
-    chain_id: Chain,
-    token_amount: TokenAmount,
-    time: DateTime<Utc>,
-    /// Receiver address on destination blockchain.
-    address: Address,
+impl TransactionBuilder {
+    pub fn to(mut self, to: impl Into<Address>) -> Self {
+        self.to = to.into();
+        self
+    }
+    pub fn value(mut self, value: impl Into<U256>) -> Self {
+        self.value = value.into();
+        self
+    }
+    pub fn data(mut self, data: impl Into<Bytes>) -> Self {
+        self.data = data.into();
+        self
+    }
+    pub fn chain_id(mut self, chain_id: impl Into<Chain>) -> Self {
+        self.chain_id = chain_id.into();
+        self
+    }
 }

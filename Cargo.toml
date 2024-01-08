@@ -1,33 +1,23 @@
 [package]
 name = "symbiosis-api"
-version = "1.0.0"
+version = "0.1.0"
 edition = "2021"
 authors = ["phnaharris <phnanh.harris@gmail.com>"]
-license = "GPL-3.0-or-later"
-description = "A high-level binding for Symbiosis API, written in Rust."
-repository = "https://github.com/phnaharris/symbiosis-api-rs.git"
-keywords = ["symbiosis", "api", "swap", "bridge", "web3"]
-categories = ["api-bindings", "development-tools"]
-readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.75"
-async-trait = "0.1.74"
-bytes = "1.5.0"
-chrono = { version = "0.4.31", features = ["serde"] }
-derive_builder = "0.12.0"
-ethers-core = { version = "2.0.11", features = ["legacy"] }
-http = "0.2.9"
+ethers-core = { git = "https://github.com/phnaharris/ethers-rs", features = [
+  "legacy",
+], branch = "phnaharris/viction-support" }
 reqwest = { version = "0.11.22", features = ["json"] }
 serde = "1.0.189"
 serde_json = "1.0.107"
-serde_urlencoded = "0.7.1"
 serde_with = "3.4.0"
+smart-default = "0.7.1"
 tokio = { version = "1.33.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.40"
-url = "2.5.0"
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.17", features = ["json", "env-filter"] }

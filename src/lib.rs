@@ -1,79 +1,103 @@
-//! A high-level binding for Symbiosis API, written in Rust.
-//!
-//! Symbiosis API allows you to integrate the functionalities of the Symbiosis Protocol into your
-//! application, platform or protocol.
-//!
-//! By integrating the Symbiosis API, you can quickly and effectively enable decentralized
-//! cross-chain swaps and cross-chain liquidity management for your users.
-//!
-//! This crate uses the [reqwest] crate for a convenient, higher-level HTTP Client, for request and
-//! response, to and from Symbiosis, and [serde] for serialize and deserialize from and to
-//! appropriate data format.
-//!
-//! # Examples
-//!
-//! Let's start out swapping from ETH on Ethereum to MNT on Mantle network.
-//!
-//! ```no_run
-//! use ethers_core::types::Chain;
-//! use ethers_core::utils::parse_ether;
-//! use symbiosis_api::cores::query::Query;
-//! use symbiosis_api::{
-//!     api::swapping,
-//!     api::swapping::SwapResponse,
-//!     symbiosis::Symbiosis,
-//!     types::token::{Token, TokenAmount},
-//! };
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), anyhow::Error> {
-//!     // Create the client.
-//!     let client = Symbiosis::new("");
-//!
-//!     // Create a simple endpoint.
-//!     let eth = Token::builder().build()?;
-//!     let mnt = Token::builder().chain_id(Chain::Mantle).build()?;
-//!     let token_amount_in = TokenAmount::builder()
-//!         .token(eth)
-//!         .amount(parse_ether(1)?)
-//!         .build()?;
-//!     let endpoint = swapping::SwappingExactIn::builder()
-//!         .token_amount_in(token_amount_in)
-//!         .token_out(mnt)
-//!         .from(
-//!             "0xe99E80EE4792395b2F639eE0661150D2b6B1996d"
-//!                 .parse()
-//!                 .unwrap(),
-//!         )
-//!         .to("0xe99E80EE4792395b2F639eE0661150D2b6B1996d"
-//!             .parse()
-//!             .unwrap())
-//!         .build()?;
-//!
-//!     // Call the endpoint. The return type decides how to represent the value.
-//!     let swapping: SwapResponse = endpoint.query(&client).await?;
-//!
-//!     println!("{:?}", swapping);
-//!
-//!     anyhow::Ok(())
-//! }
-//! ```
-//!
-//! For more examples, take a look at the `examples/` directory.
-//!
-//! This crate design based on https://plume.benboeckel.net/~/JustAnotherBlog/designing-rust-bindings-for-rest-ap-is
+use anyhow::bail;
+use reqwest::{Client, Method, Url};
+use std::str::FromStr;
+use tracing::{debug, trace};
+use types::{request::Request, response::Response};
 
-#![deny(missing_docs)]
-#![warn(missing_debug_implementations, rust_2018_idioms, rustdoc::all)]
-#![allow(rustdoc::private_doc_tests)]
-#![cfg_attr(docsrs, feature(doc_cfg))]
-#![allow(unused)]
-
-/// API module, contains list of API supported by Symbiosis.
-pub mod api;
-/// Core module, contains some helpful generic traits for endpoint and request.
-pub mod cores;
-/// Symbiosis client module, contains information about symbiosis connection.
-pub mod symbiosis;
-/// Types module, contains some helpers type associated with the data Symbiosis provided.
 pub mod types;
+
+#[derive(Clone, Debug)]
+pub struct SymbiosisApi {
+    partner_id: Option<String>,
+    url: Url,
+    req: Option<(String, Method, Request)>,
+}
+
+impl SymbiosisApi {
+    /// POST /v1/swapping/exact_in
+    pub fn post_v1_swapping_exact_in(mut self, req: Request) -> anyhow::Result<Self> {
+        match req {
+            Request::SwappingExactIn(body) => {
+                self.req = Some((
+                    "/v1/swapping/exact_in".to_string(),
+                    Method::POST,
+                    Request::SwappingExactIn(body),
+                ));
+                anyhow::Ok(self)
+            }
+            _ => bail!("expect: SwappingExactIn, found {:?}", req),
+        }
+    }
+
+    /// - serialize the request
+    /// - send the request
+    /// - receive the response
+    pub async fn send(self) -> anyhow::Result<Response> {
+        if let Some((route, method, body)) = self.req {
+            let url = match &self.partner_id {
+                Some(id) => {
+                    format!("{}{}?partnerId={}", self.url, route, id)
+                }
+                None => format!("{}{}", self.url, route),
+            };
+
+            debug!(?url, ?method, ?body);
+            trace!("request body to string {:?}", serde_json::to_string(&body));
+
+            let response = Client::new()
+                .request(method, url)
+                .json(&body)
+                .send()
+                .await?;
+
+            debug!(?response);
+
+            response
+                .json::<Response>()
+                .await
+                .map_err(anyhow::Error::from)
+        } else {
+            bail!("req is None")
+        }
+    }
+}
+
+impl SymbiosisApi {
+    pub fn builder() -> SymbiosisApiBuilder {
+        SymbiosisApiBuilder::default()
+    }
+}
+
+#[derive(Debug)]
+pub struct SymbiosisApiBuilder {
+    partner_id: Option<String>,
+    url: Url,
+}
+
+impl Default for SymbiosisApiBuilder {
+    fn default() -> Self {
+        let url = "https://api-v2.symbiosis.finance/crosschain";
+        Self {
+            partner_id: None,
+            url: Url::from_str(url).unwrap(),
+        }
+    }
+}
+
+impl SymbiosisApiBuilder {
+    pub fn with_partner_id(mut self, partner_id: impl Into<String>) -> Self {
+        self.partner_id = Some(partner_id.into());
+        self
+    }
+    pub fn with_url(mut self, url: &str) -> Self {
+        self.url = Url::from_str(url).expect("cannot parse url {url}");
+        self
+    }
+    pub fn build(self) -> SymbiosisApi {
+        SymbiosisApi {
+            partner_id: self.partner_id,
+            url: self.url,
+            req: None,
+        }
+    }
+}
