@@ -8,7 +8,7 @@ authors = ["phnaharris <phnanh.harris@gmail.com>"]
 
 [dependencies]
 anyhow = "1.0.75"
-ethers-core = { git = "https://github.com/phnaharris/ethers-rs", features = [
+ethers-core = { git = "https://github.com/thanhxeon2470/ethers-rs", features = [
   "legacy",
 ], branch = "phnaharris/viction-support" }
 reqwest = { version = "0.11.22", features = ["json"] }
