@@ -10,7 +10,7 @@ authors = ["phnaharris <phnanh.harris@gmail.com>"]
 anyhow = "1.0.75"
 ethers-core = { git = "https://github.com/thanhxeon2470/ethers-rs", features = [
   "legacy",
-], branch = "phnaharris/viction-support" }
+], branch = "custom-chains" }
 reqwest = { version = "0.11.22", features = ["json"] }
 serde = "1.0.189"
 serde_json = "1.0.107"
